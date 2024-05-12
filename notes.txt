@@ -1,0 +1,34 @@
+Database:
+
+User
+1. username
+2. phone_number
+3. roles
+
+Product Category
+1. name
+
+Product
+1. name
+2. price
+3. description
+4. tags
+5. product category
+
+Product Gallery
+1. Product
+2. image url
+
+Transaction
+1. User
+2. address
+3. payment method
+4. total price
+5. total shipping
+6. status
+
+Transcation Detail
+1. User
+2. Product
+3. Transaction
+4. quantity
