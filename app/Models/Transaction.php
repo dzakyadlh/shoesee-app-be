@@ -29,7 +29,7 @@ class Transaction extends Model
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
-    public function transaction_item()
+    public function items()
     {
         return $this->hasMany(TransactionItem::class, 'transaction_id', 'id');
     }
