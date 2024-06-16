@@ -11,6 +11,8 @@ class ProductGallery extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $table = 'product_gallery';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -23,6 +25,6 @@ class ProductGallery extends Model
 
     public function getUrlAttribute($url)
     {
-        return config('app.url') . Storage::url($url);
+        return $url;
     }
 }
