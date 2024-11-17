@@ -14,15 +14,10 @@ class CartController extends Controller
     {
         try {
             $user = $request->user();
-            $cart = Cart::where('user_id', $user->id)->first();
-
-            if (!$cart) {
-                return ResponseFormatter::error(
-                    null,
-                    'Cart not found',
-                    404
-                );
-            }
+            $cart = Cart::firstOrCreate(
+                ['user_id' => $user->id],
+                ['cart_products' => []] // Set default value if a new cart is created
+            );
 
             return ResponseFormatter::success(
                 $cart,
@@ -43,7 +38,7 @@ class CartController extends Controller
         try {
             $request->validate([
                 'product_id' => 'required|exists:products,id',
-                'quantity' => 'required|integer|min:1',
+                'quantity' => 'required|integer', // No minimum limit, it could be +1 or -1
             ]);
 
             $user = $request->user();
@@ -60,14 +55,20 @@ class CartController extends Controller
             $productExists = false;
             foreach ($cartProducts as &$item) {
                 if ($item['product_id'] == $product->id) {
-                    $item['quantity'] += $request->quantity; // Update quantity if product exists
+                    $item['quantity'] += $request->quantity; // Increase or decrease quantity
+                    // Remove product from cart if the quantity is 0 or less
+                    if ($item['quantity'] <= 0) {
+                        $cartProducts = array_filter($cartProducts, function ($cartItem) use ($product) {
+                            return $cartItem['product_id'] != $product->id;
+                        });
+                    }
                     $productExists = true;
                     break;
                 }
             }
 
-            // If product doesn't exist, add it to the cart
-            if (!$productExists) {
+            // If the product doesn't exist, add it to the cart with the requested quantity
+            if (!$productExists && $request->quantity > 0) {
                 $cartProducts[] = [
                     'product_id' => $product->id,
                     'name' => $product->name,
@@ -78,7 +79,7 @@ class CartController extends Controller
             }
 
             // Save the updated cart
-            $cart->cart_products = $cartProducts;
+            $cart->cart_products = array_values($cartProducts); // Re-index the array after filtering
             $cart->save();
 
             return ResponseFormatter::success(
@@ -94,8 +95,9 @@ class CartController extends Controller
         }
     }
 
+
     // Remove an item from the cart
-    public function remove(Request $request, $productId)
+    public function remove(Request $request)
     {
         try {
             $user = $request->user();
@@ -109,17 +111,12 @@ class CartController extends Controller
                 );
             }
 
-            // Remove product from cart
-            $cart->cart_products = array_filter($cart->cart_products, function ($item) use ($productId) {
-                return $item['product_id'] != $productId;
-            });
-
-            // Save the updated cart
+            $cart->cart_products = []; // Reset the cart products
             $cart->save();
 
             return ResponseFormatter::success(
                 $cart,
-                'Cart removed successfully'
+                'Cart has been reset successfully.'
             );
         } catch (\Exception $e) {
             return ResponseFormatter::error(
